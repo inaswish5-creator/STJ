@@ -458,7 +458,7 @@ footer{margin:35px 0 20px;text-align:center;color:var(--dim2);font-size:.53rem;l
 </div>
 
 <script>
-const GIST_URL = "https://gist.githubusercontent.com/inaswish5-creator/685f8919e9008109551845998f9ca7f5/raw/Order_Book.txt";
+const GIST_BASE_URL = "https://gist.githubusercontent.com/inaswish5-creator/685f8919e9008109551845998f9ca7f5/raw/Order_Book.txt";
 
 const FALLBACK_GIST = `========================================================
 SANGWAN OS - MASTER TRADING ORDER BOOK DATABASE
@@ -513,7 +513,8 @@ updateClock();
 async function syncRemote(){
   document.getElementById('status').textContent = 'SYNCING DATA...';
   try{
-    const res = await fetch(GIST_URL, {cache:'no-store'});
+    const cacheBustedUrl = `${GIST_BASE_URL}?t=${new Date().getTime()}`;
+    const res = await fetch(cacheBustedUrl, {cache:'no-store'});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const text = await res.text();
     localStorage.setItem('sangwan_gist_cache', text);
@@ -619,13 +620,12 @@ function process(rawText){
   }
 
   trades.sort((a,b)=>a.exitTs-b.exitTs);
-  trades.forEach((t,idx)=>t.id=idx+1); // re-index chronologically
+  trades.forEach((t,idx)=>t.id=idx+1);
   TRADES=trades;
 
   document.getElementById('asof').textContent = trades.length ? 'Latest: '+formatDateReadable(trades[trades.length-1].date) : 'Latest trade: --';
   initYearSelector(trades);
   
-  // Build Scrip Data Once
   buildScripData();
   renderAll();
 }
@@ -661,7 +661,7 @@ function renderAll(){
   renderPulse();
   renderRisk();
   renderWeekly();
-  renderHistogram(); // Replaces WinLoss Donut
+  renderHistogram();
   renderCalendar();
   renderMonthly();
   renderDow();
@@ -688,7 +688,7 @@ function renderKPIs(){
 
   let cum=0, peak=0, maxDD=0;
   TRADES.forEach(t=>{ cum+=t.pnl; peak=Math.max(peak,cum); maxDD=Math.max(maxDD,peak-cum); });
-  const watermarkDelta = cum - peak; // distance from all time high
+  const watermarkDelta = cum - peak;
 
   const metrics=[
     ['NET REALISED P&L', fmt(total), total>=0?'up':'down', `${TRADES.length} matched trades`],
@@ -940,7 +940,6 @@ function clearLedgerFilter(){
 function renderHistogram(){
   if(charts.wl) charts.wl.destroy();
   
-  // Option Buyer's Tail Risk Distribution Profile
   let counts = [0,0,0,0,0];
   let labels = ['< -5k', '-5k to 0', '0 to 5k', '5k to 10k', '> 10k'];
   let colors = ['rgba(239,68,68,0.9)', 'rgba(239,68,68,0.5)', 'rgba(16,185,129,0.5)', 'rgba(16,185,129,0.7)', 'rgba(16,185,129,0.9)'];
